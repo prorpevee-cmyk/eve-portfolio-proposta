@@ -1,29 +1,6 @@
-(() => {
-  const carousel = document.querySelector('.work-carousel');
-  if (!carousel) return;
-  const track = carousel.querySelector('.carousel-track');
-  const previous = carousel.querySelector('.carousel-prev');
-  const next = carousel.querySelector('.carousel-next');
-  const count = carousel.querySelector('.carousel-count');
-  const slides = [...track.querySelectorAll('.carousel-slide')];
-  const step = () => slides[0].getBoundingClientRect().width + parseFloat(getComputedStyle(track).gap);
-  const update = () => {
-    const gap = parseFloat(getComputedStyle(track).gap);
-    const first = Math.min(slides.length, Math.round(track.scrollLeft / step()) + 1);
-    const last = Math.min(slides.length, Math.max(first, Math.floor((track.scrollLeft + track.clientWidth + gap + 1) / step())));
-    count.textContent = `${first === last ? first : `${first}–${last}`} / ${slides.length}`;
-    previous.disabled = track.scrollLeft < 2;
-    next.disabled = track.scrollLeft >= track.scrollWidth - track.clientWidth - 2;
-  };
-  const move = direction => track.scrollBy({left: direction * step(), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
-  previous.addEventListener('click', () => move(-1));
-  next.addEventListener('click', () => move(1));
-  track.addEventListener('scroll', update, {passive: true});
-  track.addEventListener('keydown', event => {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-    event.preventDefault();
-    move(event.key === 'ArrowRight' ? 1 : -1);
-  });
-  new ResizeObserver(update).observe(track);
-  update();
-})();
+const grid=document.querySelector('.work-grid'),filters=document.querySelector('.gallery-filters'),viewer=document.querySelector('#work-viewer'),media=viewer.querySelector('.viewer-media'),caption=viewer.querySelector('.viewer-caption'),controls=viewer.querySelector('.viewer-controls'),previous=viewer.querySelector('.viewer-prev'),next=viewer.querySelector('.viewer-next');let selected=null,slide=0,trigger=null;
+const play='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2v12l10-6z"/></svg>',stack='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 1h10v10h-2V3H5zM1 5h10v10H1zm2 2v6h6V7z"/></svg>';
+function render(brand='Todos'){grid.replaceChildren();for(const [kind,title] of [['image','Feed'],['video','Vídeos']]){const items=portfolioItems.filter(item=>(brand==='Todos'||item.brand===brand)&&item.kind===kind);if(!items.length)continue;const section=document.createElement('section');section.className='work-group';const heading=document.createElement('h3');heading.textContent=title;const groupGrid=document.createElement('div');groupGrid.className='work-group-grid';section.append(heading,groupGrid);grid.append(section);items.forEach(item=>{const b=document.createElement('button');b.className='work-card';b.dataset.kind=item.kind;b.setAttribute('aria-label',`${item.brand}: ${item.title}`);const cover=document.createElement('span');cover.className='work-cover';const im=document.createElement('img');im.src=item.cover;im.alt=item.title;im.loading='lazy';cover.append(im);if(item.kind==='video'||item.images.length>1){const icon=document.createElement('span');icon.className='work-icon';icon.innerHTML=item.kind==='video'?play:stack;cover.append(icon)}const label=document.createElement('span');label.className='work-card-label';label.textContent=item.brand;b.append(cover,label);b.onclick=()=>{trigger=b;selected=item;slide=0;showMedia();viewer.showModal()};groupGrid.append(b)})}}
+function showMedia(){media.replaceChildren();caption.textContent=selected.brand+' · '+selected.title;controls.hidden=selected.kind==='video'||selected.images.length<2;if(selected.kind==='video'){const v=document.createElement('video');v.src=selected.video;v.poster=selected.cover;v.controls=true;v.playsInline=true;v.preload='metadata';media.append(v)}else{const im=document.createElement('img');im.src=selected.images[slide];im.alt=selected.title;media.append(im);previous.disabled=slide===0;next.disabled=slide===selected.images.length-1}}
+previous.onclick=()=>{if(slide>0){slide--;showMedia()}};next.onclick=()=>{if(slide<selected.images.length-1){slide++;showMedia()}};viewer.querySelector('.viewer-close').onclick=()=>viewer.close();viewer.addEventListener('close',()=>{media.replaceChildren();trigger?.focus()});viewer.addEventListener('click',e=>{if(e.target===viewer){const r=viewer.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)viewer.close()}});viewer.addEventListener('keydown',e=>{if(selected.kind==='image'){if(e.key==='ArrowRight')next.click();if(e.key==='ArrowLeft')previous.click()}});
+['Todos',...new Set(portfolioItems.map(x=>x.brand))].forEach(brand=>{const b=document.createElement('button');b.textContent=brand;b.setAttribute('aria-pressed',String(brand==='Todos'));b.onclick=()=>{filters.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));render(brand)};filters.append(b)});render();
